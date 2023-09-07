@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  postgresql-service:
+    container_name: postgresql-container
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_INITDB_SCRIPT=/docker-entrypoint-initdb.d/init.sql
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+
+  message-consumer:
+    container_name: message-consumer
+    image: knvelasquez/messageconsumer:v1.2
+    environment:
+      - SPRING_BOOT_PORT=${SPRING_BOOT_PORT:-8088}
+      - PSQL_URL=jdbc:postgresql://localhost:5432/satellite_db
+      - PSQL_USER=root
+      - PSQL_PASS=${DB_PASS}
+    ports:
+      - ${SPRING_BOOT_PORT:-8088}:${SPRING_BOOT_PORT:-8088}
+    depends_on:
+      - postgresql-service
+    command: bash -c "mvn clean test spring-boot:run"
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    network_mode: host
